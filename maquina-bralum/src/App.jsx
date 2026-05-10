@@ -22,7 +22,7 @@ const formatCOP = (value) => {
 };
 
 // --- LÓGICA DE NEGOCIO BRALUM ---
-const calculateMetrics = (precio, costo, flete, checkboxes) => {
+const calculateMetrics = (precio, costo, flete, checkboxes, validacionMeta) => {
   const margenBruto = precio - costo - flete;
   
   // Nivel de Margen
@@ -40,10 +40,17 @@ const calculateMetrics = (precio, costo, flete, checkboxes) => {
 
   // Veredicto Bralum 🤖
   let veredicto = "🔴 DESCARTADO (No pautar)";
-  if (margenBruto < 25000 || scoreFinal < 3) {
+  
+  if (validacionMeta === 'Saturado') {
+    veredicto = "🔴 DESCARTADO (Saturado en Meta)";
+  } else if (margenBruto < 25000 || scoreFinal < 3) {
     veredicto = "🔴 DESCARTADO (No pautar)";
   } else if (margenBruto >= 40000 && scoreFinal >= 3) {
-    veredicto = "🟢 TESTEO PRIORITARIO (Lanzar hoy)";
+    if (validacionMeta === 'Ninguno') {
+      veredicto = "🟡 TESTEO CONDICIONADO (Océano Azul / Riesgo)";
+    } else {
+      veredicto = "🟢 TESTEO PRIORITARIO (Lanzar hoy)";
+    }
   } else if (margenBruto >= 25000 && scoreFinal === 4) {
     veredicto = "🟡 TESTEO CONDICIONADO (Armar Bundle)";
   }
@@ -60,8 +67,8 @@ const INITIAL_FORM_STATE = {
   logisticaPce: false,
   percepcionValor: false,
   dificilAcceso: false,
-  linkDropi: '',
-  linkRef: ''
+  validacionMeta: 'Pendiente',
+  linkDropi: ''
 };
 
 export default function BralumTester() {
@@ -94,7 +101,8 @@ export default function BralumTester() {
         logisticaPce: form.logisticaPce,
         percepcionValor: form.percepcionValor,
         dificilAcceso: form.dificilAcceso
-      }
+      },
+      form.validacionMeta
     );
     setMetrics(newMetrics);
   }, [form]);
@@ -145,8 +153,8 @@ export default function BralumTester() {
 
     const headers = [
       'Nombre', 'Costo Dropi (COP)', 'Precio Bralum (COP)', 
-      'Flete (COP)', 'Margen Bruto (COP)', 'Score Final', 
-      'Veredicto', 'Link Dropi', 'Link Ref', 'Fecha Evaluación'
+      'Flete (COP)', 'Margen Bruto (COP)', 'Score Final', 'Meta Ads',
+      'Veredicto', 'Link Dropi', 'Fecha Evaluación'
     ];
 
     const csvRows = [headers.join(',')];
@@ -159,9 +167,9 @@ export default function BralumTester() {
         p.fletePromedio,
         p.margenBruto,
         p.scoreFinal,
+        `"${p.validacionMeta}"`,
         `"${p.veredicto}"`,
         `"${p.linkDropi}"`,
-        `"${p.linkRef}"`,
         `"${p.fecha}"`
       ];
       csvRows.push(row.join(','));
@@ -236,7 +244,7 @@ export default function BralumTester() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Nombre del Producto</label>
-                  <input type="text" name="nombre" value={form.nombre} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none" placeholder="Ej: Cepillo Secador 5 en 1" />
+                  <input type="text" name="nombre" value={form.nombre} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none" placeholder="Ej: Cepillo Secador 5 en 1" />
                 </div>
               </div>
 
@@ -246,15 +254,15 @@ export default function BralumTester() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1">Costo Dropi (COP)</label>
-                    <input type="number" name="costoDropi" value={form.costoDropi || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500" placeholder="0" />
+                    <input type="number" name="costoDropi" value={form.costoDropi || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-md bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="0" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1">Precio Bralum (COP)</label>
-                    <input type="number" name="precioBralum" value={form.precioBralum || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500" placeholder="0" />
+                    <input type="number" name="precioBralum" value={form.precioBralum || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-md bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="0" />
                   </div>
                   <div className="col-span-2">
                     <label className="block text-xs font-semibold text-slate-600 mb-1">Flete Promedio (COP)</label>
-                    <input type="number" name="fletePromedio" value={form.fletePromedio || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500" />
+                    <input type="number" name="fletePromedio" value={form.fletePromedio || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-md bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
                   </div>
                 </div>
               </div>
@@ -275,22 +283,34 @@ export default function BralumTester() {
                       name={item.id} 
                       checked={form[item.id]} 
                       onChange={handleInputChange} 
-                      className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      className="w-5 h-5 accent-blue-600 rounded cursor-pointer appearance-none border border-slate-300 bg-white checked:bg-blue-600 checked:border-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
                     />
                     <span className="ml-3 text-sm font-medium text-slate-700">{item.label}</span>
                   </label>
                 ))}
               </div>
 
+              {/* Validación Meta Ads */}
+              <div className="space-y-3 pt-2">
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-2">Validación en Meta Ads</h3>
+                <select 
+                  name="validacionMeta" 
+                  value={form.validacionMeta} 
+                  onChange={handleInputChange} 
+                  className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+                >
+                  <option value="Pendiente">⏳ Pendiente de revisión...</option>
+                  <option value="Ninguno">🌊 No hay ninguno (Océano azul / Riesgoso)</option>
+                  <option value="Algunos">💰 Hay algunos activos (Perfecto, hay dinero)</option>
+                  <option value="Saturado">📉 Cientos iguales de ayer (Saturado, evítalo)</option>
+                </select>
+              </div>
+
               {/* Enlaces */}
-              <div className="space-y-3">
+              <div className="space-y-3 pt-2">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Link Dropi</label>
-                  <input type="url" name="linkDropi" value={form.linkDropi} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-md text-sm" placeholder="https://dropi.co/..." />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Link Referencia (Meta/TikTok)</label>
-                  <input type="url" name="linkRef" value={form.linkRef} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-md text-sm" placeholder="https://tiktok.com/..." />
+                  <input type="url" name="linkDropi" value={form.linkDropi} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-md bg-slate-50 text-slate-900 placeholder:text-slate-400 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="https://dropi.co/..." />
                 </div>
               </div>
 
@@ -407,7 +427,13 @@ export default function BralumTester() {
                       <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                         <td className="p-4">
                           <p className="font-bold text-slate-800">{p.nombre}</p>
-                          <p className="text-xs text-slate-400">{p.fecha}</p>
+                          <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                            {p.validacionMeta === 'Algunos' && '💰'}
+                            {p.validacionMeta === 'Saturado' && '📉'}
+                            {p.validacionMeta === 'Ninguno' && '🌊'}
+                            {p.validacionMeta === 'Pendiente' && '⏳'}
+                            {p.validacionMeta}
+                          </p>
                         </td>
                         <td className="p-4">
                           {renderVeredictoBadge(p.veredicto)}
