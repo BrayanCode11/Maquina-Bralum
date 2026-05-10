@@ -1,6 +1,5 @@
 {
   "buildCommand": "cd maquina-bralum && npm run build",
   "outputDirectory": "maquina-bralum/dist",
-  "framework": "vite",
-  "nodeVersion": "18.x"
+  "framework": "vite"
 }
