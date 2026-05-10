@@ -211,9 +211,9 @@ export default function BralumTester() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-12">
+    <div className="w-full min-h-screen bg-slate-50 font-sans text-slate-800 pb-12">
       {/* Header */}
-      <header className="bg-slate-900 text-white p-6 shadow-lg">
+      <header className="w-full bg-slate-900 text-white p-6 shadow-lg">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Package className="w-8 h-8 text-blue-400" />
