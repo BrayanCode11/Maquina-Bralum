@@ -21,7 +21,10 @@ const formatCOP = (value) => {
   }).format(value);
 };
 
-// --- LÓGICA DE NEGOCIO BRALUM ---
+// --- Rango de precio Bralum efectivo ---
+const BRALUM_PRICE_MIN = 70000;
+const BRALUM_PRICE_MAX = 130000;
+
 const calculateMetrics = (precio, costo, flete, checkboxes, validacionMeta) => {
   const margenBruto = precio - costo - flete;
   
@@ -120,6 +123,13 @@ export default function BralumTester() {
       alert("Por favor, ingresa el nombre del producto.");
       return;
     }
+
+    const precioBralumValue = Number(form.precioBralum) || 0;
+    if (precioBralumValue < BRALUM_PRICE_MIN || precioBralumValue > BRALUM_PRICE_MAX) {
+      alert(`El Precio Bralum debe estar entre ${formatCOP(BRALUM_PRICE_MIN)} y ${formatCOP(BRALUM_PRICE_MAX)}.`);
+      return;
+    }
+
     const newProduct = {
       ...form,
       id: Date.now().toString(),
@@ -258,7 +268,17 @@ export default function BralumTester() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1">Precio Bralum (COP)</label>
-                    <input type="number" name="precioBralum" value={form.precioBralum || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-md bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="0" />
+                    <input
+                      type="number"
+                      name="precioBralum"
+                      value={form.precioBralum || ''}
+                      min={BRALUM_PRICE_MIN}
+                      max={BRALUM_PRICE_MAX}
+                      onChange={handleInputChange}
+                      className="w-full p-2 border border-slate-300 rounded-md bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      placeholder="0"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">Precio permitido: {formatCOP(BRALUM_PRICE_MIN)} - {formatCOP(BRALUM_PRICE_MAX)}</p>
                   </div>
                   <div className="col-span-2">
                     <label className="block text-xs font-semibold text-slate-600 mb-1">Flete Promedio (COP)</label>
