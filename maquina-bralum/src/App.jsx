@@ -300,9 +300,9 @@ export default function BralumTester() {
                   className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
                 >
                   <option value="Pendiente">⏳ Pendiente de revisión...</option>
-                  <option value="Ninguno">🌊 No hay ninguno (Océano azul / Riesgoso)</option>
-                  <option value="Algunos">💰 Hay algunos activos (Perfecto, hay dinero)</option>
-                  <option value="Saturado">📉 Cientos iguales de ayer (Saturado, evítalo)</option>
+                  <option value="Ninguno">🌊 0 Anuncios (Océano Azul - Riesgoso)</option>
+                  <option value="Algunos">💰 Entre 3 y 20 Anuncios (Rentable)</option>
+                  <option value="Saturado">📉 50+ Anuncios (Saturado, Evítalo)</option>
                 </select>
               </div>
 
