@@ -70,8 +70,10 @@ const INITIAL_FORM_STATE = {
   logisticaPce: false,
   percepcionValor: false,
   dificilAcceso: false,
+  linkDropi: '',
   validacionMeta: 'Pendiente',
-  linkDropi: ''
+  ventasGlobales: '',
+  calificacion: ''
 };
 
 export default function BralumTester() {
@@ -134,6 +136,8 @@ export default function BralumTester() {
       ...form,
       id: Date.now().toString(),
       ...metrics,
+      ventasGlobales: form.ventasGlobales || '',
+      calificacion: form.calificacion || '',
       fecha: new Date().toLocaleDateString()
     };
     
@@ -163,7 +167,7 @@ export default function BralumTester() {
 
     const headers = [
       'Nombre', 'Costo Dropi (COP)', 'Precio Bralum (COP)', 
-      'Flete (COP)', 'Margen Bruto (COP)', 'Score Final', 'Meta Ads',
+      'Flete (COP)', 'Margen Bruto (COP)', 'Ventas Globales', 'Calificación', 'Score Final', 'Meta Ads',
       'Veredicto', 'Link Dropi', 'Fecha Evaluación'
     ];
 
@@ -176,6 +180,8 @@ export default function BralumTester() {
         p.precioBralum,
         p.fletePromedio,
         p.margenBruto,
+        (p.ventasGlobales || ''),
+        (p.calificacion || ''),
         p.scoreFinal,
         `"${p.validacionMeta}"`,
         `"${p.veredicto}"`,
@@ -285,6 +291,30 @@ export default function BralumTester() {
                     <input type="number" name="fletePromedio" value={form.fletePromedio || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-md bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
                   </div>
                 </div>
+              </div>
+
+              {/* VALIDACIÓN FINANCIERA GLOBAL (AliExpress/Temu) */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Validación Financiera Global (AliExpress/Temu)</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Ventas Globales</label>
+                    <input type="text" name="ventasGlobales" value={form.ventasGlobales || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="+10000" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Calificación</label>
+                    <input type="number" name="calificacion" step="0.1" min="1" max="5" value={form.calificacion || ''} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="4.5" />
+                    <p className="text-xs text-slate-500 mt-1">Ingrese valor entre 1.0 y 5.0</p>
+                  </div>
+                </div>
+
+                {form.calificacion !== '' && (
+                  (isNaN(parseFloat(form.calificacion)) || parseFloat(form.calificacion) < 4.2) ? (
+                    <p className="text-sm text-red-600 font-bold mt-2">⚠️ ALERTA: Calificación muy baja. Alto riesgo de devoluciones (PCE). ¡Descartar!</p>
+                  ) : (
+                    <p className="text-sm text-green-600 font-bold mt-2">✅ Aprobado por Calificación</p>
+                  )
+                )}
               </div>
 
               {/* Checkboxes de Calidad */}
