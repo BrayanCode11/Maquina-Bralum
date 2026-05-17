@@ -377,6 +377,18 @@ export default function BralumTester() {
                     <p className="text-xs text-slate-500 mt-1">Ingrese valor entre 1.0 y 5.0</p>
                   </div>
                 </div>
+
+                {/* Resultado de Validación Financiera */}
+                {metrics.validacionFinanciera && (
+                  <div className={`mt-4 p-3 rounded-lg whitespace-pre-wrap break-words leading-relaxed ${
+                    metrics.validacionFinanciera.includes('🔴') ? 'bg-red-50 text-red-800 border border-red-200' :
+                    metrics.validacionFinanciera.includes('🟡') ? 'bg-yellow-50 text-yellow-800 border border-yellow-200' :
+                    metrics.validacionFinanciera.includes('🟢') ? 'bg-green-50 text-green-800 border border-green-200' :
+                    'bg-slate-50 text-slate-800 border border-slate-200'
+                  }`}>
+                    {metrics.validacionFinanciera}
+                  </div>
+                )}
               </div>
 
               {/* Checkboxes de Calidad */}
@@ -465,16 +477,10 @@ export default function BralumTester() {
               </div>
 
               <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-4">Veredicto Bralum 🤖</p>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-4 text-center">Veredicto Bralum 🤖</p>
                 <div className="flex justify-center mb-4">
                   {renderVeredictoBadge(metrics.veredicto)}
                 </div>
-                
-                {metrics.validacionFinanciera && (
-                  <div className={`p-4 rounded-lg whitespace-pre-wrap text-xs font-semibold leading-relaxed break-words ${metrics.validacionFinanciera.includes('🔴') ? 'bg-red-500/10 text-red-400 border border-red-500/30' : metrics.validacionFinanciera.includes('🟡') ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/30' : metrics.validacionFinanciera.includes('🟢') ? 'bg-green-500/10 text-green-300 border border-green-500/30' : 'bg-slate-500/10 text-slate-300 border border-slate-500/30'}`}>
-                    {metrics.validacionFinanciera}
-                  </div>
-                )}
               </div>
 
               <button 
