@@ -25,7 +25,67 @@ const formatCOP = (value) => {
 const BRALUM_PRICE_MIN = 70000;
 const BRALUM_PRICE_MAX = 130000;
 
-const calculateMetrics = (precio, costo, flete, checkboxes, validacionMeta) => {
+const parseGlobalSales = (ventasGlobales) => {
+  if (!ventasGlobales) return null;
+  const cleaned = String(ventasGlobales).replace(/[^\d]/g, '');
+  if (!cleaned) return null;
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const getGlobalFinancialValidation = ({ ventasGlobales, calificacion }) => {
+  const rating = Number.parseFloat(String(calificacion).replace(',', '.'));
+  const sales = parseGlobalSales(ventasGlobales);
+
+  const qualityStatus = !Number.isNaN(rating)
+    ? rating < 4.2
+      ? { status: 'Descartar', message: 'Calidad menor a 4.2. ¡Ni lo mires!' }
+      : rating <= 4.4
+        ? { status: 'Condicional', message: 'Calidad 4.2 a 4.4. Requiere leer comentarios.' }
+        : { status: 'Aprobar', message: 'Calidad 4.5+. Calidad Top.' }
+    : null;
+
+  const salesStatus = sales !== null
+    ? sales < 1000
+      ? { status: 'Condicional', message: 'Ventas < 1.000. Muy nuevo, riesgo de moda pasajera.' }
+      : sales <= 9999
+        ? { status: 'Aprobar', message: 'Ventas 1.000 a 9.999. Validado, pero no saturado. ¡Lanzar rápido!' }
+        : { status: 'Aprobar', message: 'Ventas >= 10.000. Producto súper ganador.' }
+    : null;
+
+  if (qualityStatus?.status === 'Descartar') {
+    return qualityStatus;
+  }
+
+  const statuses = [qualityStatus?.status, salesStatus?.status].filter(Boolean);
+
+  if (statuses.includes('Descartar')) {
+    return { status: 'Descartar', message: '🔴 Validación Financiera Global: Rechazado por calidad o ventas.' };
+  }
+
+  if (statuses.includes('Condicional')) {
+    const parts = [qualityStatus?.message, salesStatus?.message].filter(Boolean);
+    return {
+      status: 'Condicional',
+      message: `🟡 Validación Financiera Global:\n${parts.map(p => `  • ${p}`).join('\n')}`
+    };
+  }
+
+  if (statuses.includes('Aprobar')) {
+    const parts = [qualityStatus?.message, salesStatus?.message].filter(Boolean);
+    return {
+      status: 'Aprobar',
+      message: `🟢 Validación Financiera Global:\n${parts.map(p => `  • ${p}`).join('\n')}`
+    };
+  }
+
+  return {
+    status: 'Pendiente',
+    message: '⚪ Validación Financiera Global: Pendiente (sin datos).'
+  };
+};
+
+const calculateMetrics = (precio, costo, flete, checkboxes, validacionMeta, ventasGlobales, calificacion) => {
   const margenBruto = precio - costo - flete;
   
   // Nivel de Margen
@@ -41,13 +101,19 @@ const calculateMetrics = (precio, costo, flete, checkboxes, validacionMeta) => {
     (checkboxes.percepcionValor ? 1 : 0) + 
     (checkboxes.dificilAcceso ? 1 : 0);
 
+  const validacionFinanciera = getGlobalFinancialValidation({ ventasGlobales, calificacion });
+
   // Veredicto Bralum 🤖
   let veredicto = "🔴 DESCARTADO (No pautar)";
   
-  if (validacionMeta === 'Saturado') {
+  if (validacionFinanciera.status === 'Descartar') {
+    veredicto = "🔴 DESCARTADO (Validación Financiera Global)";
+  } else if (validacionMeta === 'Saturado') {
     veredicto = "🔴 DESCARTADO (Saturado en Meta)";
   } else if (margenBruto < 25000 || scoreFinal < 3) {
     veredicto = "🔴 DESCARTADO (No pautar)";
+  } else if (validacionFinanciera.status === 'Condicional') {
+    veredicto = "🟡 TESTEO CONDICIONADO (Validación Financiera Global)";
   } else if (margenBruto >= 40000 && scoreFinal >= 3) {
     if (validacionMeta === 'Ninguno') {
       veredicto = "🟡 TESTEO CONDICIONADO (Océano Azul / Riesgo)";
@@ -56,9 +122,11 @@ const calculateMetrics = (precio, costo, flete, checkboxes, validacionMeta) => {
     }
   } else if (margenBruto >= 25000 && scoreFinal === 4) {
     veredicto = "🟡 TESTEO CONDICIONADO (Armar Bundle)";
+  } else {
+    veredicto = "🟡 TESTEO CONDICIONADO (Verificación adicional)";
   }
 
-  return { margenBruto, nivelMargen, scoreFinal, veredicto };
+  return { margenBruto, nivelMargen, scoreFinal, veredicto, validacionFinanciera: validacionFinanciera.message };
 };
 
 const INITIAL_FORM_STATE = {
@@ -84,7 +152,8 @@ export default function BralumTester() {
     margenBruto: -15000, 
     nivelMargen: "🔴 Bajo (< $25k)", 
     scoreFinal: 0, 
-    veredicto: "🔴 DESCARTADO (No pautar)"
+    veredicto: "🔴 DESCARTADO (No pautar)",
+    validacionFinanciera: '⚪ Validación Financiera Global: Pendiente de información.'
   });
 
   // Cargar datos al iniciar
@@ -107,7 +176,9 @@ export default function BralumTester() {
         percepcionValor: form.percepcionValor,
         dificilAcceso: form.dificilAcceso
       },
-      form.validacionMeta
+      form.validacionMeta,
+      form.ventasGlobales,
+      form.calificacion
     );
     setMetrics(newMetrics);
   }, [form]);
@@ -167,7 +238,7 @@ export default function BralumTester() {
 
     const headers = [
       'Nombre', 'Costo Dropi (COP)', 'Precio Bralum (COP)', 
-      'Flete (COP)', 'Margen Bruto (COP)', 'Ventas Globales', 'Calificación', 'Score Final', 'Meta Ads',
+      'Flete (COP)', 'Margen Bruto (COP)', 'Ventas Globales', 'Calificación', 'Validación Financiera', 'Score Final', 'Meta Ads',
       'Veredicto', 'Link Dropi', 'Fecha Evaluación'
     ];
 
@@ -181,8 +252,7 @@ export default function BralumTester() {
         p.fletePromedio,
         p.margenBruto,
         (p.ventasGlobales || ''),
-        (p.calificacion || ''),
-        p.scoreFinal,
+        (p.calificacion || ''),        `"${p.validacionFinanciera || ''}"`,        p.scoreFinal,
         `"${p.validacionMeta}"`,
         `"${p.veredicto}"`,
         `"${p.linkDropi}"`,
@@ -307,14 +377,6 @@ export default function BralumTester() {
                     <p className="text-xs text-slate-500 mt-1">Ingrese valor entre 1.0 y 5.0</p>
                   </div>
                 </div>
-
-                {form.calificacion !== '' && (
-                  (isNaN(parseFloat(form.calificacion)) || parseFloat(form.calificacion) < 4.2) ? (
-                    <p className="text-sm text-red-600 font-bold mt-2">⚠️ ALERTA: Calificación muy baja. Alto riesgo de devoluciones (PCE). ¡Descartar!</p>
-                  ) : (
-                    <p className="text-sm text-green-600 font-bold mt-2">✅ Aprobado por Calificación</p>
-                  )
-                )}
               </div>
 
               {/* Checkboxes de Calidad */}
@@ -402,11 +464,17 @@ export default function BralumTester() {
                 </div>
               </div>
 
-              <div className="bg-white/5 rounded-xl p-6 border border-white/10 text-center">
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-3">Veredicto Bralum 🤖</p>
-                <div className="flex justify-center">
+              <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-4">Veredicto Bralum 🤖</p>
+                <div className="flex justify-center mb-4">
                   {renderVeredictoBadge(metrics.veredicto)}
                 </div>
+                
+                {metrics.validacionFinanciera && (
+                  <div className={`p-4 rounded-lg whitespace-pre-wrap text-xs font-semibold leading-relaxed break-words ${metrics.validacionFinanciera.includes('🔴') ? 'bg-red-500/10 text-red-400 border border-red-500/30' : metrics.validacionFinanciera.includes('🟡') ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/30' : metrics.validacionFinanciera.includes('🟢') ? 'bg-green-500/10 text-green-300 border border-green-500/30' : 'bg-slate-500/10 text-slate-300 border border-slate-500/30'}`}>
+                    {metrics.validacionFinanciera}
+                  </div>
+                )}
               </div>
 
               <button 
